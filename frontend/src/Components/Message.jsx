@@ -1,102 +1,84 @@
 import React, { useState } from "react";
 import AnswerFormatter from "./AnswerFormatter";
 
+const AssistantAvatar = () => (
+  <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
+    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
+  </div>
+);
+
 export default function Message({ message, isUser }) {
   const [showSources, setShowSources] = useState(false);
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-4 animate-fadeIn">
-        <div className="max-w-2xl">
-          <div className="rounded-2xl bg-gradient-to-br from-cyan-500/90 to-blue-500/90 text-white px-6 py-4 shadow-lg shadow-cyan-500/20 transform transition-all duration-200 hover:scale-[1.02]">
-            <div className="text-sm font-medium leading-relaxed">
-              {message.content}
-            </div>
+      <div className="flex justify-end animate-fadeIn group">
+        <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[65%]">
+          <div className="rounded-2xl rounded-br-md bg-zinc-800 text-zinc-100 px-4 py-3 text-[0.9375rem] leading-relaxed">
+            {message.content}
           </div>
         </div>
       </div>
     );
   }
 
+  const sourceText = (src) => src.content || src.text || "";
+
   return (
-    <div className="flex justify-start mb-6 animate-fadeIn">
-      <div className="max-w-2xl w-full">
-        <div className="flex items-start gap-4">
-          {/* AI Avatar */}
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
-            <span className="text-white text-lg font-bold">🤖</span>
-          </div>
+    <div className="flex gap-3 animate-fadeIn group">
+      <AssistantAvatar />
 
-          <div className="flex-1">
-            {/* Message Content */}
-            <div className="rounded-2xl bg-slate-800/40 border border-slate-700/50 px-6 py-4 backdrop-blur-sm hover:bg-slate-800/60 transition-all duration-300">
-              <div className="text-gray-100 text-sm leading-relaxed prose-invert max-w-none">
-                <AnswerFormatter content={message.content} />
-              </div>
-            </div>
+      <div className="flex-1 min-w-0 max-w-[85%] sm:max-w-[75%] md:max-w-[65%]">
+        <div className="text-[0.9375rem] leading-relaxed prose-chat">
+          <AnswerFormatter content={message.content} />
+        </div>
 
-            {/* Sources Section */}
-            {message.sources && message.sources.length > 0 && (
-              <div className="mt-3 ml-0">
-                <button
-                  onClick={() => setShowSources(!showSources)}
-                  className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-all duration-200 flex items-center gap-2 group"
-                >
-                  <svg
-                    className={`w-4 h-4 transition-transform duration-200 ${showSources ? "rotate-180" : "group-hover:translate-y-0.5"
-                      }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+        {message.sources && message.sources.length > 0 && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => setShowSources(!showSources)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              <svg
+                className={`w-3.5 h-3.5 transition-transform ${showSources ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              {showSources ? "Hide" : "Show"} sources ({message.sources.length})
+            </button>
+
+            {showSources && (
+              <div className="mt-2 space-y-2 animate-slideDown">
+                {message.sources.map((src, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-lg bg-zinc-900/60 border border-white/[0.06] text-xs"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                    />
-                  </svg>
-                  <span className="group-hover:underline">
-                    {showSources ? "Hide Sources" : "Show Sources"}
-                  </span>
-                  <span className="text-cyan-500">({message.sources.length})</span>
-                </button>
-
-                {showSources && (
-                  <div className="mt-3 space-y-2 animate-slideDown">
-                    {message.sources.map((src, idx) => (
-                      <div
-                        key={idx}
-                        className="group p-3 rounded-lg bg-slate-900/50 border border-slate-700/50 hover:border-cyan-500/40 hover:bg-slate-900/70 transition-all duration-200 cursor-pointer"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-6 h-6 rounded-md bg-cyan-500/20 flex items-center justify-center">
-                            <span className="text-cyan-400 text-xs font-bold">{idx + 1}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-300 truncate">
-                              {src.document_id || "Source Document"}
-                            </p>
-                            {src.page && (
-                              <p className="text-xs text-cyan-400/70 mt-1">
-                                📄 Page {src.page}
-                              </p>
-                            )}
-                            {src.text && (
-                              <p className="text-xs text-gray-400 mt-2 line-clamp-2 italic">
-                                "{src.text.substring(0, 150)}..."
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="w-5 h-5 rounded bg-indigo-500/15 text-indigo-400 flex items-center justify-center font-semibold text-[10px]">
+                        {idx + 1}
+                      </span>
+                      {src.page != null && (
+                        <span className="text-zinc-500">Page {src.page}</span>
+                      )}
+                    </div>
+                    {sourceText(src) && (
+                      <p className="text-zinc-400 leading-relaxed line-clamp-3">
+                        {sourceText(src)}
+                      </p>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

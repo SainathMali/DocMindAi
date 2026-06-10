@@ -1,116 +1,186 @@
 import React, { useState } from "react";
+import "../App.css";
 import Sidebar from "../Components/Sidebar";
 import UploadButton from "../Components/UploadButton";
 import ChatWindow from "../Components/ChatWindow";
 
+const MODEL_NAME = "Llama 3.2";
+
+function AppHeader({ title, subtitle, onMenuClick, showMenu }) {
+  return (
+    <header className="glass-header flex items-center gap-3 px-4 sm:px-6 h-14 flex-shrink-0 z-20">
+      {showMenu && (
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="lg:hidden p-2 -ml-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+          aria-label="Open sidebar"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
+
+      <div className="logo-mark hidden sm:flex">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <h1 className="text-sm font-semibold text-zinc-100 truncate">{title}</h1>
+        {subtitle && (
+          <p className="text-xs text-zinc-500 truncate">{subtitle}</p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900/60 border border-white/[0.06]">
+        <span className="status-dot" />
+        <span className="text-xs font-medium text-zinc-400 hidden sm:inline">{MODEL_NAME}</span>
+      </div>
+    </header>
+  );
+}
+
+function WelcomeScreen({ onUpload, onImageUpload }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-y-auto relative">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full opacity-30"
+          style={{
+            background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)",
+            animation: "pulse-soft 4s ease-in-out infinite",
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 w-full max-w-lg mx-auto text-center animate-slideUp">
+        <div className="logo-mark w-14 h-14 rounded-2xl mx-auto mb-6">
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+        </div>
+
+        <h1 className="text-2xl sm:text-3xl font-semibold text-zinc-100 tracking-tight mb-2">
+          DocMind AI
+        </h1>
+        <p className="text-base text-indigo-400/90 font-medium mb-2">
+          Chat with Documents & Images
+        </p>
+        <p className="text-sm text-zinc-500 leading-relaxed mb-8 max-w-md mx-auto">
+          Upload PDFs and ask intelligent questions powered by local RAG.
+          Image analysis UI is ready for upcoming vision features.
+        </p>
+
+        <UploadButton onUpload={onUpload} onImageUpload={onImageUpload} />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [documents, setDocuments] = useState([]);
-  const [selectedDocId, setSelectedDocId] = useState(null);
+  const [images, setImages] = useState([]);
+  const [selectedType, setSelectedType] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const hasSelection = selectedId !== null;
+  const isImageMode = selectedType === "image";
+
+  const selectedDocument = documents.find((d) => d.document_id === selectedId);
+  const selectedImage = images.find((img) => img.id === selectedId);
 
   const handleUpload = (result) => {
     setDocuments((prev) => [...prev, result]);
-    setSelectedDocId(result.document_id);
+    setSelectedType("pdf");
+    setSelectedId(result.document_id);
+    setSidebarOpen(false);
   };
 
+  const handleImageUpload = (imageItem) => {
+    setImages((prev) => [...prev, imageItem]);
+    setSelectedType("image");
+    setSelectedId(imageItem.id);
+    setSidebarOpen(false);
+  };
+
+  const handleSelectDocument = (id) => {
+    setSelectedType("pdf");
+    setSelectedId(id);
+    setSidebarOpen(false);
+  };
+
+  const handleSelectImage = (id) => {
+    setSelectedType("image");
+    setSelectedId(id);
+    setSidebarOpen(false);
+  };
+
+  const headerTitle = hasSelection
+    ? isImageMode
+      ? selectedImage?.filename || "Image"
+      : selectedDocument?.filename || "Document"
+    : "DocMind AI";
+
+  const headerSubtitle = hasSelection
+    ? isImageMode
+      ? "Image analysis"
+      : `${selectedDocument?.chunk_count ?? 0} chunks indexed`
+    : null;
+
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900 text-gray-100 overflow-hidden">
+    <div className="app-shell">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 sidebar-overlay lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
-      <Sidebar documents={documents} selectedId={selectedDocId} onSelect={setSelectedDocId} />
+      <div
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-out lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <Sidebar
+          documents={documents}
+          images={images}
+          selectedId={selectedId}
+          selectedType={selectedType}
+          onSelectDocument={handleSelectDocument}
+          onSelectImage={handleSelectImage}
+          onClose={() => setSidebarOpen(false)}
+        />
+      </div>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-0 relative">
-        {selectedDocId ? (
-          <ChatWindow documentId={selectedDocId} />
+      {/* Main */}
+      <div className="app-main">
+        <AppHeader
+          title={headerTitle}
+          subtitle={headerSubtitle}
+          onMenuClick={() => setSidebarOpen(true)}
+          showMenu={!sidebarOpen}
+        />
+
+        {hasSelection ? (
+          <ChatWindow
+            documentId={isImageMode ? null : selectedId}
+            documentName={
+              isImageMode ? selectedImage?.filename : selectedDocument?.filename
+            }
+            isImageMode={isImageMode}
+            imagePreview={selectedImage?.previewUrl}
+          />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 overflow-y-auto relative">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse" />
-              <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-              <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-            </div>
-
-            {/* Content */}
-            <div className="relative z-10 w-full max-w-5xl mx-auto animate-fadeIn">
-              {/* Top Navigation - Model Selector & Brand */}
-              <div className="flex justify-between items-center mb-16 px-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg">
-                    <span className="text-white text-sm font-bold">📄</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-400">DocMind AI</span>
-                </div>
-
-                <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 hover:border-cyan-500/30 transition-all duration-300">
-                  <span className="text-xs font-medium text-gray-400">Model:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-cyan-400">Llama 3.1</span>
-                    <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Centered Brand Name */}
-              <div className="text-center mb-12 animate-slideUp">
-                <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold mb-4 tracking-tight">
-                  <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse-glow">
-                    DocMind AI
-                  </span>
-                </h1>
-                <p className="text-gray-400 text-lg md:text-xl font-light max-w-2xl mx-auto">
-                  Ask anything, upload documents, and get intelligent answers
-                </p>
-              </div>
-
-              {/* Main Upload Box - Like Perplexity */}
-              <div className="mb-16 w-full max-w-3xl mx-auto animate-fadeIn">
-                <UploadButton onUpload={handleUpload} />
-              </div>
-
-              {/* Feature Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto px-4">
-                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20 cursor-pointer p-6 backdrop-blur-sm">
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-blue-500/0 group-hover:from-cyan-500/10 group-hover:to-blue-500/10 transition-all duration-500" />
-                  <div className="relative">
-                    <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-300">💬</div>
-                    <h3 className="font-semibold text-white mb-2 text-lg">Ask Anything</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">Upload PDFs and ask intelligent questions with RAG technology</p>
-                  </div>
-                </div>
-
-                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-slate-700/50 hover:border-blue-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer p-6 backdrop-blur-sm">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/10 group-hover:to-purple-500/10 transition-all duration-500" />
-                  <div className="relative">
-                    <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-300">📄</div>
-                    <h3 className="font-semibold text-white mb-2 text-lg">Multiple Formats</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">Support for PDF, images, and text documents</p>
-                  </div>
-                </div>
-
-                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-slate-700/50 hover:border-purple-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20 cursor-pointer p-6 backdrop-blur-sm">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/10 group-hover:to-pink-500/10 transition-all duration-500" />
-                  <div className="relative">
-                    <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-300">🧠</div>
-                    <h3 className="font-semibold text-white mb-2 text-lg">Smart Analysis</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">AI-powered understanding with source attribution</p>
-                  </div>
-                </div>
-
-                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/40 to-slate-900/40 border border-slate-700/50 hover:border-emerald-500/50 transition-all duration-500 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/20 cursor-pointer p-6 backdrop-blur-sm">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/10 group-hover:to-teal-500/10 transition-all duration-500" />
-                  <div className="relative">
-                    <div className="text-3xl mb-3 transform group-hover:scale-110 transition-transform duration-300">⚡</div>
-                    <h3 className="font-semibold text-white mb-2 text-lg">Fast Retrieval</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">Lightning-fast processing with accurate results</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <WelcomeScreen onUpload={handleUpload} onImageUpload={handleImageUpload} />
         )}
-      </main>
+      </div>
     </div>
   );
 }

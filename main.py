@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,6 +12,10 @@ from utils.config import get_settings
 async def lifespan(app: FastAPI):
     settings = get_settings()
     settings.ensure_directories()
+    logging.basicConfig(
+        level=logging.DEBUG if settings.debug else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+    )
     yield
 
 

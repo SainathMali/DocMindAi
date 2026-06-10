@@ -2,7 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { askQuestion } from "../services/api";
 import Message from "./Message";
 
-export default function ChatWindow({ documentId }) {
+const SUGGESTIONS = [
+  "Summarize this document",
+  "What are the key takeaways?",
+  "Explain the main concepts",
+];
+
+export default function ChatWindow({ documentId, documentName, isImageMode, imagePreview }) {
   const containerRef = useRef(null);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
@@ -11,23 +17,44 @@ export default function ChatWindow({ documentId }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setMessages([]);
+    setInput("");
+  }, [documentId, isImageMode]);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+      container.scrollHeight - container.scrollTop - container.clientHeight < 120;
     if (isNearBottom && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, loading]);
 
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
-    const userMsg = { role: "user", content: input };
+  const handleSend = async (text) => {
+    const message = (text ?? input).trim();
+    if (!message || loading) return;
+
+    if (isImageMode) {
+      const userMsg = { role: "user", content: message };
+      const aiMsg = {
+        role: "assistant",
+        content:
+          "**Image analysis is coming soon.**\n\nYour image has been added to the library. Full vision-based Q&A will be available in a future update. PDF chat is fully supported — upload a PDF to get started.",
+        sources: [],
+      };
+      setMessages((prev) => [...prev, userMsg, aiMsg]);
+      setInput("");
+      return;
+    }
+
+    const userMsg = { role: "user", content: message };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+
     try {
-      const response = await askQuestion(input, documentId);
+      const response = await askQuestion(message, documentId);
       const aiMsg = {
         role: "assistant",
         content: response.answer,
@@ -36,7 +63,11 @@ export default function ChatWindow({ documentId }) {
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
       console.error(err);
-      const errMsg = { role: "assistant", content: "Error: unable to get response", sources: [] };
+      const errMsg = {
+        role: "assistant",
+        content: "Sorry, I couldn't get a response. Please ensure the backend and Ollama are running.",
+        sources: [],
+      };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
       setLoading(false);
@@ -44,119 +75,129 @@ export default function ChatWindow({ documentId }) {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-1/4 w-96 h-96 bg-gradient-to-bl from-cyan-500/10 via-transparent to-transparent rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 left-1/4 w-96 h-96 bg-gradient-to-tr from-purple-500/10 via-transparent to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
-
-      {/* Top Bar */}
-      <div className="relative z-10 flex justify-between items-center px-8 py-4 border-b border-slate-800/50 bg-slate-950/30 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
-            <span className="text-white text-sm">💬</span>
-          </div>
-          <span className="text-sm font-medium text-gray-400">Chat</span>
-        </div>
-
-        <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-800/30 backdrop-blur-sm border border-slate-700/50">
-          <span className="text-xs font-medium text-gray-400">Model:</span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-cyan-400">LIama3.1</span>
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          </div>
-        </div>
-      </div>
-
-      {/* Messages Container */}
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Messages */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-y-auto px-6 py-8 space-y-6 min-h-0 max-w-4xl mx-auto w-full scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 sm:px-6 py-6"
       >
-        {messages.length === 0 && (
-          <div className="h-full flex items-center justify-center animate-fadeIn">
-            <div className="text-center space-y-4">
-              <div className="text-6xl animate-bounce">💡</div>
-              <p className="text-gray-300 font-light text-xl">
-                Ask me anything about your document
-              </p>
-              <p className="text-gray-500 text-sm">
-                Powered by Llama 3.1 • RAG Technology
-              </p>
-              <div className="flex gap-3 justify-center mt-6">
-                <div className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-xs text-gray-400">Summarize this document</div>
-                <div className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-xs text-gray-400">Key takeaways</div>
-                <div className="px-3 py-1.5 rounded-lg bg-slate-800/50 text-xs text-gray-400">Explain concepts</div>
+        <div className="max-w-3xl mx-auto space-y-6">
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-[40vh] text-center animate-fadeIn px-4">
+              {isImageMode && imagePreview ? (
+                <>
+                  <img
+                    src={imagePreview}
+                    alt="Selected"
+                    className="w-32 h-32 object-cover rounded-xl border border-white/10 mb-4 shadow-lg"
+                  />
+                  <h3 className="text-lg font-medium text-zinc-200 mb-1">Analyze this image</h3>
+                  <p className="text-sm text-zinc-500 max-w-sm">
+                    Ask questions about your image. Vision analysis backend is being prepared.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-4">
+                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-zinc-200 mb-1">
+                    Chat with {documentName || "your document"}
+                  </h3>
+                  <p className="text-sm text-zinc-500 max-w-sm mb-6">
+                    Ask anything about the uploaded content. Answers are grounded in your document with source citations.
+                  </p>
+                </>
+              )}
+
+              <div className="flex flex-wrap gap-2 justify-center max-w-lg">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => handleSend(s)}
+                    className="suggestion-chip px-3 py-1.5 rounded-full text-xs text-zinc-400 border border-white/[0.08] bg-zinc-900/50"
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {messages.map((msg, idx) => (
-          <Message key={idx} message={msg} isUser={msg.role === "user"} />
-        ))}
+          {messages.map((msg, idx) => (
+            <Message key={`${msg.role}-${idx}`} message={msg} isUser={msg.role === "user"} />
+          ))}
 
-        {loading && (
-          <div className="flex items-center space-x-4 animate-fadeIn">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-              <span className="text-white text-lg">🤖</span>
+          {loading && (
+            <div className="flex gap-3 animate-fadeIn">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div className="flex items-center gap-1.5 pt-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "300ms" }} />
+              </div>
             </div>
-            <div className="flex space-x-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-              <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-            </div>
-            <span className="text-gray-400 text-sm font-light">Analyzing document...</span>
-          </div>
-        )}
+          )}
 
-        <div ref={bottomRef} />
+          <div ref={bottomRef} />
+        </div>
       </div>
 
-      {/* Enhanced Input Area */}
-      <div className="relative z-10 flex-shrink-0 px-6 py-6 max-w-4xl mx-auto w-full">
-        <div className="relative">
-          {/* Glow effect */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl opacity-0 group-hover:opacity-100 transition duration-300 blur" />
-
-          <div className="relative flex gap-3 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-2 focus-within:border-cyan-500/50 focus-within:shadow-lg focus-within:shadow-cyan-500/10 transition-all duration-300">
-            {/* Upload Icon Button */}
-            <button className="flex-shrink-0 w-11 h-11 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 text-gray-400 hover:text-cyan-400 transition-all duration-200 flex items-center justify-center group">
-              <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-            </button>
-
-            {/* Text Input */}
-            <input
+      {/* Input */}
+      <div className="flex-shrink-0 px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
+        <div className="max-w-3xl mx-auto">
+          <div className="chat-input-shell rounded-2xl bg-zinc-900/80 border border-white/[0.06] p-2 transition-shadow duration-200">
+            <textarea
               ref={inputRef}
-              type="text"
+              rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-              placeholder="Ask a question about your document..."
-              className="flex-1 bg-transparent text-white rounded-lg px-2 py-3 placeholder-gray-500 focus:outline-none font-light"
+              onKeyDown={handleKeyDown}
+              placeholder={
+                isImageMode
+                  ? "Ask a question about this image..."
+                  : "Message DocMind AI..."
+              }
               disabled={loading}
+              className="w-full bg-transparent text-zinc-100 text-sm px-3 py-2 resize-none focus:outline-none placeholder-zinc-500 max-h-32"
+              style={{ minHeight: "2.5rem" }}
             />
-
-            {/* Send Button */}
-            <button
-              onClick={handleSend}
-              disabled={loading || !input.trim()}
-              className="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium hover:from-cyan-400 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 whitespace-nowrap shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 transform hover:scale-105 active:scale-95"
-            >
-              <span>Send</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
+            <div className="flex items-center justify-between px-2 pt-1">
+              <p className="text-[11px] text-zinc-600 hidden sm:block">
+                Enter to send · Shift+Enter for new line
+              </p>
+              <button
+                type="button"
+                onClick={() => handleSend()}
+                disabled={loading || !input.trim()}
+                className="ml-auto p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all duration-150"
+                aria-label="Send message"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
+          <p className="text-[11px] text-zinc-600 text-center mt-2">
+            DocMind AI can make mistakes. Verify important information from sources.
+          </p>
         </div>
-        <p className="text-xs text-gray-500 mt-3 text-center">
-          Press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400 text-xs">Enter</kbd> to send · <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-cyan-400 text-xs">Shift + Enter</kbd> for new line
-        </p>
       </div>
     </div>
   );

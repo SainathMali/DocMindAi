@@ -54,6 +54,21 @@ def index_documents(chunks: list[Document], settings: Settings) -> int:
     return len(chunks)
 
 
+def similarity_search_with_scores(
+    query: str,
+    settings: Settings,
+    document_id: str | None = None,
+    k: int | None = None,
+) -> list[tuple[Document, float]]:
+    """Search with relevance scores (lower distance = more similar)."""
+    store = get_vectorstore(settings)
+    top_k = k if k is not None else settings.retrieval_candidate_k
+    search_filter = _build_metadata_filter(document_id)
+    return store.similarity_search_with_score(
+        query, k=top_k, filter=search_filter
+    )
+
+
 def similarity_search(
     query: str,
     settings: Settings,
@@ -61,7 +76,5 @@ def similarity_search(
     k: int | None = None,
 ) -> list[Document]:
     """Search for the top-k most similar chunks, optionally scoped to a document."""
-    store = get_vectorstore(settings)
-    top_k = k if k is not None else settings.retrieval_k
-    search_filter = _build_metadata_filter(document_id)
-    return store.similarity_search(query, k=top_k, filter=search_filter)
+    results = similarity_search_with_scores(query, settings, document_id, k)
+    return [doc for doc, _ in results]

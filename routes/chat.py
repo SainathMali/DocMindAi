@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from models.requests import ChatRequest
 from models.responses import ChatResponse, ErrorResponse
 from services.chat_service import ChatService
 from utils.config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Chat"])
 
@@ -24,8 +28,9 @@ async def chat(
 ) -> ChatResponse:
     try:
         return await service.chat(request)
-    except (ConnectionError, OSError) as exc:
+    except (ConnectionError, OSError, TimeoutError) as exc:
+        logger.error("Ollama unavailable: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Ollama is unavailable: {exc}",
+            detail="Ollama is unavailable. Please ensure Ollama is running.",
         ) from exc

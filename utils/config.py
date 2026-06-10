@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     chunk_size: int = 500
     chunk_overlap: int = 100
     retrieval_k: int = 3
+    retrieval_final_k: int = 4
+    retrieval_candidate_k: int = 6
+    similarity_score_threshold: float = 1.0
+    ollama_timeout: int = 90
+    ollama_temperature: float = 0.15
+    cache_retrieval: bool = True
 
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
 
