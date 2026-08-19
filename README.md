@@ -446,13 +446,6 @@ Please keep pull requests focused and include a clear description of changes.
 
 ---
 
-## Author
-
-**DocMind AI**
-
-Built as a local RAG learning and document Q&A platform.
-
-- GitHub: [@your-username](https://github.com/your-username)
 
 ---
 
