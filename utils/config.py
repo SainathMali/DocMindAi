@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     app_name: str = "Local RAG Assistant"
     app_version: str = "0.1.0"
     debug: bool = False
+    
+    database_url: str | None = None
 
     ollama_base_url: str = "http://localhost:11434"
     llm_model: str = "llama3.2:1b"

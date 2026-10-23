@@ -28,3 +28,5 @@ export const askQuestion = async (
 
   return response.data;
 };
+
+export default API;

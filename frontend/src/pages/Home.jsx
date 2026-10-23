@@ -3,10 +3,13 @@ import "../App.css";
 import Sidebar from "../Components/Sidebar";
 import UploadButton from "../Components/UploadButton";
 import ChatWindow from "../Components/ChatWindow";
+import { useAuth } from "../context/AuthContext";
 
 const MODEL_NAME = "Llama 3.2";
 
 function AppHeader({ title, subtitle, onMenuClick, showMenu }) {
+  const { user, logout } = useAuth();
+
   return (
     <header className="glass-header flex items-center gap-3 px-4 sm:px-6 h-14 flex-shrink-0 z-20">
       {showMenu && (
@@ -35,9 +38,23 @@ function AppHeader({ title, subtitle, onMenuClick, showMenu }) {
         )}
       </div>
 
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900/60 border border-white/[0.06]">
-        <span className="status-dot" />
-        <span className="text-xs font-medium text-zinc-400 hidden sm:inline">{MODEL_NAME}</span>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900/60 border border-white/[0.06]">
+          <span className="status-dot" />
+          <span className="text-xs font-medium text-zinc-400 hidden sm:inline">{MODEL_NAME}</span>
+        </div>
+        
+        {user && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-zinc-300 hidden sm:inline">{user.name}</span>
+            <button
+              onClick={logout}
+              className="text-xs font-medium text-red-400 hover:text-red-300 transition-colors bg-red-400/10 hover:bg-red-400/20 px-3 py-1.5 rounded-lg border border-red-400/20"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

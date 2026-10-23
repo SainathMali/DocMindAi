@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routes import api_router
 from utils.config import get_settings
+from database import engine, Base
+import models.user  # Ensure the User model is imported so metadata is populated
 
 
 @asynccontextmanager
@@ -16,7 +18,13 @@ async def lifespan(app: FastAPI):
         level=logging.DEBUG if settings.debug else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s — %(message)s",
     )
+    
+    # Initialize the database
+    if engine is not None:
+        Base.metadata.create_all(bind=engine)
+        
     yield
+
 
 
 def create_app() -> FastAPI:
